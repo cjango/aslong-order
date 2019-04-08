@@ -1,0 +1,153 @@
+<?php
+
+namespace AsLong\Order\Models;
+
+use AsLong\Order\Traits\OrderCando;
+use AsLong\Order\Traits\OrderHasActions;
+use AsLong\Order\Traits\OrderHasAttributes;
+use AsLong\Order\Traits\OrderHasScopes;
+use AsLong\Order\Utils\Helper;
+use Auth;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Order extends Model
+{
+    use OrderCando, OrderHasActions, OrderHasAttributes, OrderHasScopes, SoftDeletes;
+
+    const ORDER_INIT       = 'INIT'; // 订单初始化
+    const ORDER_UNPAY      = 'UNPAY'; // 待支付
+    const ORDER_PAID       = 'PAID'; // 已支付
+    const ORDER_DELIVER    = 'DELIVER'; // 发货处理中
+    const ORDER_DELIVERED  = 'DELIVERED'; // 已发货
+    const ORDER_SIGNED     = 'SIGNED'; // 已签收
+    const REFUND_APPLY     = 'REFUND_APPLY'; // 申请退款
+    const REFUND_AGREE     = 'REFUND_AGREE'; // 同意退款
+    const REFUND_REFUSE    = 'REFUND_REFUSE'; // 拒绝退款
+    const REFUND_PROCESS   = 'REFUND_PROCESS'; // 退款中
+    const REFUND_COMPLETED = 'REFUND_COMPLETED'; // 退款完成
+    const ORDER_CLOSED     = 'CLOSED'; // 已关闭
+    const ORDER_CANCEL     = 'CANCEL'; // 取消
+    const ORDER_COMPLETED  = 'COMPLETED'; // 已完成
+
+    const CANCEL_USER   = 2; // 买家取消
+    const CANCEL_SELLER = 3; // 卖家取消
+    const CANCEL_SYSTEM = 4; // 系统取消
+
+    protected $guarded = [];
+
+    protected $dates = [
+        'paid_at',
+    ];
+
+    public function getRouteKeyName()
+    {
+        return 'orderid';
+    }
+
+    public static function boot()
+    {
+        parent::boot();
+
+        self::creating(function ($model) {
+            $model->orderid = Helper::orderid(config('aslong_order.order_orderid.length'), config('aslong_order.order_orderid.prefix'));
+        });
+
+        self::updated(function ($model) {
+            $model->logs()->create([
+                'user'   => self::detectUser(),
+                'status' => $model->getOriginal('status', '0000') . '|' . $model->status,
+                'state'  => $model->getOriginal('state') . '|' . $model->state,
+            ]);
+        });
+    }
+
+    /**
+     * 侦测当前操作用户
+     * @Author:<C.Jason>
+     * @Date:2018-10-26T14:29:52+0800
+     * @return Auth
+     */
+    public static function detectUser()
+    {
+        return Auth::user() ?: Auth::guard(config('aslong_order.admin_guard'))->user();
+    }
+
+    /**
+     * 关联所属用户
+     * @Author:<C.Jason>
+     * @Date:2018-10-19T14:05:42+0800
+     * @return User
+     */
+    public function user()
+    {
+        return $this->belongsTo(config('aslong_order.user_model'))->withDefault();
+    }
+
+    /**
+     * 关联所属用户
+     * @Author:<C.Jason>
+     * @Date:2018-10-19T14:05:42+0800
+     * @return User
+     */
+    public function seller()
+    {
+        return $this->belongsTo(config('aslong_order.user_model'))->withDefault();
+    }
+
+    /**
+     * 订单详情
+     * @Author:<C.Jason>
+     * @Date:2018-10-19T10:35:55+0800
+     * @return OrderDetail
+     */
+    public function details()
+    {
+        return $this->hasMany(OrderDetail::class);
+    }
+
+    /**
+     * 订单物流
+     * @Author:<C.Jason>
+     * @Date:2018-10-19T10:36:03+0800
+     * @return OrderExpress
+     */
+    public function express()
+    {
+        return $this->hasOne(OrderExpress::class);
+    }
+
+    /**
+     * 订单日志
+     * @Author:<C.Jason>
+     * @Date:2018-10-19T10:36:11+0800
+     * @return OrderLog
+     */
+    public function logs()
+    {
+        return $this->hasMany(OrderLog::class);
+    }
+
+    /**
+     * 退款单
+     * @Author:<C.Jason>
+     * @Date:2018-10-19T13:15:02+0800
+     * @return OrderRefund
+     */
+    public function refund()
+    {
+        return $this->hasOne(Refund::class)->orderBy('id', 'desc');
+    }
+
+    /**
+     * 全部退款单
+     * @Author:<C.Jason>
+     * @Date:2018-10-22T14:26:18+0800
+     * @return [type] [description]
+     */
+    public function refunds()
+    {
+        return $this->hasMany(Refund::class);
+    }
+
+}
