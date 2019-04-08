@@ -73,7 +73,7 @@ class Orders
 
                 event(new OrderCreated($order));
 
-                if (config('AsLong_order.auto_audit') === true) {
+                if (config('aslong_order.auto_audit') === true) {
                     $order->audit(true);
                 }
             });
