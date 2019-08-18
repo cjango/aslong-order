@@ -7,6 +7,11 @@ return [
     'user_model'     => App\User::class,
 
     /**
+     * 卖家模型
+     */
+    'seller_model' => App\User::class,
+
+    /**
      * 订单编号规则
      */
     'order_orderid'  => [
