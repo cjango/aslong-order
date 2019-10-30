@@ -81,7 +81,7 @@ class Order extends Model
      */
     public function user()
     {
-        return $this->belongsTo(config('aslong_order.seller_model'))->withDefault();
+        return $this->belongsTo(config('aslong_order.user_model'))->withDefault();
     }
 
     /**
@@ -92,7 +92,7 @@ class Order extends Model
      */
     public function seller()
     {
-        return $this->belongsTo(config('aslong_order.user_model'))->withDefault();
+        return $this->belongsTo(config('aslong_order.seller_model'))->withDefault();
     }
 
     /**
